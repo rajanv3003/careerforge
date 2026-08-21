@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "name": "CareerForge ₹1 Cr Career Intelligence Benchmark",
+    "version": "1.0",
+    "currency": "INR",
+    "note": "Proprietary competency + compensation model used to score candidates against the ₹1 Cr+ CTC bar in the Indian market. This is the data layer that makes CareerForge a diagnostic engine, not a chatbot."
+  },
+  "readiness_bands": [
+    { "min": 85, "label": "Offer-Ready", "verdict": "You clear the ₹1 Cr bar today. Focus is now on positioning and negotiation, not gaps." },
+    { "min": 70, "label": "Contender", "verdict": "You are a credible ₹1 Cr candidate with 2–3 sharp gaps to close before you'll convert at the top tier." },
+    { "min": 55, "label": "Emerging", "verdict": "Strong foundation, but the story doesn't yet read at the ₹1 Cr level. A focused 60–90 day sprint changes that." },
+    { "min": 0, "label": "Foundation", "verdict": "The raw material is there. We build the ₹1 Cr narrative deliberately, dimension by dimension." }
+  ],
+  "competency_dimensions": [
+    { "key": "impact_scale", "label": "Impact & Scale", "weight": 0.22,
+      "definition": "Evidence of business outcomes at scale — revenue, cost, users, latency, uptime — with hard numbers.",
+      "cr_signal": "Owned outcomes measured in ₹ crores, millions of users/transactions, or company-level metrics." },
+    { "key": "leadership", "label": "Leadership & Influence", "weight": 0.2,
+      "definition": "Leading people, cross-functional programs, and decisions that others execute.",
+      "cr_signal": "Led teams/orgs, set strategy, hired, and influenced beyond your direct line." },
+    { "key": "domain_depth", "label": "Domain & Technical Depth", "weight": 0.2,
+      "definition": "Mastery of the craft and domain the target role demands.",
+      "cr_signal": "Recognised expert — sought out for the hardest problems in this domain." },
+    { "key": "strategic", "label": "Strategic & Commercial", "weight": 0.15,
+      "definition": "Connecting work to P&L, market, and company strategy — thinking like an owner.",
+      "cr_signal": "Framed work in commercial terms; made build/buy/bet calls with money on the line." },
+    { "key": "brand_visibility", "label": "Brand & Visibility", "weight": 0.12,
+      "definition": "External proof: LinkedIn presence, talks, writing, referrals, reputation.",
+      "cr_signal": "A market that knows you — inbound interest, strong network, public proof." },
+    { "key": "communication", "label": "Executive Communication", "weight": 0.11,
+      "definition": "Crisp, senior, outcome-first communication that lands with leaders.",
+      "cr_signal": "Communicates like an operator — clarity, brevity, and narrative that moves decisions." }
+  ],
+  "role_families": [
+    { "key": "eng_leadership", "label": "Engineering Leadership", "aliases": ["engineering manager","director of engineering","vp engineering","head of engineering","staff engineer","principal engineer"],
+      "core_keywords": ["distributed systems","architecture","scalability","reliability","microservices","cloud","team leadership","mentoring","system design","SLA","incident management","hiring"],
+      "cr_markers": ["org design","platform strategy","multi-team","P&L or budget ownership","0-to-1","scaled to millions"] },
+    { "key": "product", "label": "Product Management", "aliases": ["product manager","group product manager","director of product","vp product","head of product","cpo"],
+      "core_keywords": ["product strategy","roadmap","discovery","A/B testing","metrics","north star","stakeholder","GTM","user research","prioritization","OKRs"],
+      "cr_markers": ["owned P&L","0-to-1 product","platform bets","pricing","company strategy","led PM org"] },
+    { "key": "data_ai", "label": "Data & AI / ML", "aliases": ["data scientist","ml engineer","ai engineer","head of data","director data science","applied scientist"],
+      "core_keywords": ["machine learning","LLM","deep learning","python","MLOps","model deployment","experimentation","data pipelines","statistics","recommendation","NLP"],
+      "cr_markers": ["models in production at scale","research to revenue","led DS/AI org","novel IP or patents","platform-level ML"] },
+    { "key": "sales_gtm", "label": "Sales & GTM", "aliases": ["sales director","vp sales","account executive","head of sales","chief revenue officer","gtm lead"],
+      "core_keywords": ["quota","pipeline","enterprise sales","ARR","churn","forecasting","territory","negotiation","CRM","partnerships","expansion"],
+      "cr_markers": ["multi-crore/₹100Cr+ quota","built a region","enterprise logos","team of AEs","predictable revenue engine"] },
+    { "key": "finance_strategy", "label": "Finance & Strategy", "aliases": ["finance director","cfo","vp finance","head of strategy","corp dev","fp&a lead"],
+      "core_keywords": ["P&L","fundraising","financial modeling","unit economics","M&A","board","budgeting","forecasting","controls","investor relations"],
+      "cr_markers": ["owned company P&L","led fundraise/M&A","board-facing","capital allocation","IPO readiness"] },
+    { "key": "general_leadership", "label": "General / Executive Leadership", "aliases": ["general manager","coo","ceo","business head","country head","operations director"],
+      "core_keywords": ["strategy","operations","P&L","team building","transformation","stakeholder management","growth","execution"],
+      "cr_markers": ["ran a business unit","full P&L","org of 50+","company-level outcomes","board exposure"] }
+  ],
+  "salary_bands_inr": {
+    "note": "Approximate total CTC bands (fixed + variable + ESOP value) for the Indian market, senior tiers. Used to place a candidate and set negotiation anchors.",
+    "tiers": [
+      { "key": "senior_ic", "label": "Senior IC", "low": 3500000, "mid": 6000000, "high": 9000000 },
+      { "key": "staff_principal", "label": "Staff / Principal / Lead", "low": 7000000, "mid": 11000000, "high": 16000000 },
+      { "key": "director", "label": "Director / Sr. Director / Head", "low": 10000000, "mid": 16000000, "high": 26000000 },
+      { "key": "vp_cxo", "label": "VP / CXO", "low": 18000000, "mid": 30000000, "high": 60000000 }
+    ],
+    "cr_threshold": 10000000
+  },
+  "recruiter_signals": {
+    "instant_credibility": ["Tier-1 company or brand names","Quantified ₹/scale outcomes in first 2 lines","Clear scope escalation over time","Recognisable domain expertise"],
+    "instant_rejection": ["Duties instead of outcomes","No numbers","Job-hopping without a narrative","Generic summary","Keyword-stuffing without evidence","Title/scope mismatch with target"]
+  }
+}

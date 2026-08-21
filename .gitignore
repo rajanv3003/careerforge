@@ -1,0 +1,15 @@
+# Secrets — never commit
+.env
+.env.*
+*.key
+
+# Dependencies
+node_modules/
+
+# Generated client deliverables (contain real personal data)
+out/
+public/reports/
+
+# OS / editor noise
+.DS_Store
+*.log
