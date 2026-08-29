@@ -42,11 +42,12 @@ async function callDeepSeek(prompt, opts = {}) {
     model: DEEPSEEK_MODEL,
     messages,
     temperature: 0.7,
-    max_tokens: 8192,
-    // deepseek-v4 is a reasoning model: without this it spends the whole
-    // token budget "thinking" and returns empty content. Disable thinking
-    // so all tokens go to the actual answer.
-    thinking: { type: "disabled" },
+    // deepseek-v4 is a reasoning model. By default we DISABLE thinking so the
+    // whole token budget goes to the answer (otherwise it returns empty).
+    // For opts.think=true (nuanced tasks that need instruction-following, e.g.
+    // personalized outreach) we ENABLE thinking and give extra headroom.
+    max_tokens: opts.think ? 20000 : 8192,
+    thinking: { type: opts.think ? "enabled" : "disabled" },
   };
   if (opts.json) payload.response_format = { type: "json_object" };
   const res = await fetch(`${DEEPSEEK_BASE}/chat/completions`, {
@@ -124,7 +125,7 @@ app.post("/api/run", async (req, res) => {
     const { module, resume, job, profile } = req.body || {};
     const mod = MODULES[module];
     if (!mod) return res.status(400).json({ error: "Unknown module: " + module });
-    const raw = await callGemini(mod.prompt({ resume, job, profile }), { json: !!mod.json });
+    const raw = await callGemini(mod.prompt({ resume, job, profile, o: req.body.o }), { json: !!mod.json, think: !!mod.think });
     let output = raw;
     if (mod.json) {
       const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
