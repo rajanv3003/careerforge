@@ -26,8 +26,9 @@
   --font-display:"Archivo",system-ui,sans-serif;
 }
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
+html,body{margin:0;height:100%;max-width:100%;overflow-x:hidden}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);letter-spacing:-.005em;overflow:hidden}
+img,iframe,canvas,video{max-width:100%}
 h1,h2,h3,h4{font-family:var(--font-display);letter-spacing:-.024em;margin:0}
 /* ambient */
 body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
@@ -177,6 +178,46 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
 #journeynav{flex-shrink:0;border-top:1px solid var(--line);background:rgba(8,8,10,.6);backdrop-filter:blur(10px);padding:13px 26px;display:flex;align-items:center;justify-content:space-between}
 .jprog{font-size:12px;color:var(--t4)} .jprog b{color:#fff;font-family:var(--font-display)}
 @media(max-width:900px){.jlbl{display:none}}
+/* ---------- Hamburger + mobile drawer sidebar ---------- */
+.hamb{display:none;background:none;border:0;color:#fff;cursor:pointer;padding:6px;margin-right:2px;align-items:center}
+.sidescrim{display:none}
+@media(max-width:860px){
+  /* turn the fixed-height flex shell into a normal scrolling page on phones */
+  html,body{height:auto;overflow-x:hidden;overflow-y:auto}
+  .app{display:block;height:auto;min-height:100vh;width:100%;overflow-x:hidden}
+  .main{width:100%;max-width:100vw;overflow-x:hidden}
+  .scroll{overflow:visible;height:auto;flex:none}
+  .side{position:fixed;top:0;left:0;bottom:0;z-index:60;width:270px;max-width:82vw;transform:translateX(-100%);transition:transform .28s var(--ease);box-shadow:0 0 46px rgba(0,0,0,.6)}
+  body.nav-open .side{transform:none}
+  .sidescrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:55;opacity:0;pointer-events:none;transition:.25s}
+  body.nav-open .sidescrim{opacity:1;pointer-events:auto}
+  .hamb{display:inline-flex}
+  .topbar{position:sticky;top:0;z-index:30;padding:0 12px;height:56px;gap:8px}
+  .topbar .ttl{font-size:15px;min-width:0;flex:1}
+  .topbar .ttl #pagetitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .topbar .eyebrow{display:none}
+  .topacts{gap:6px;flex-shrink:0}
+  .topacts .btn{padding:9px 11px}
+  .topacts .lbl{display:none}
+  .main{overflow-x:hidden;max-width:100vw}
+  .scroll{padding:18px 14px;overflow-x:hidden}
+  .homewrap,.outwrap{max-width:100%!important}
+  #view *{max-width:100%}
+  .outwrap,.pad{padding:0 !important}
+  .grid2{grid-template-columns:1fr}
+  .col2{grid-template-columns:1fr;padding:0 14px 22px}
+  .scorehead{padding:20px 14px;gap:16px}
+  .toolgrid{grid-template-columns:1fr}
+  .hero,.hhero{padding:22px 18px}
+  .hero h1{font-size:24px}
+  .hhero h1{font-size:23px;line-height:1.12}
+  .hhero p,.hero p{font-size:14px}
+  h1,h2,h3,p,span,div{overflow-wrap:anywhere;word-break:break-word}
+  .eyebrow2{font-size:10px;letter-spacing:.14em}
+  .stepcard{padding:16px 16px;gap:14px}
+  .scircle{width:44px;height:44px;font-size:18px}
+  .drawer{width:100%;max-width:100vw}
+}
 /* simple stage nav numbers */
 .snum{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:12px;color:var(--t4);flex-shrink:0}
 .snum.cur{background:var(--red);color:#fff;border-color:var(--red)}
@@ -239,14 +280,16 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
       </div>
     </div>
   </aside>
+  <div class="sidescrim" id="sidescrim"></div>
 
   <!-- MAIN -->
   <div class="main">
     <div class="topbar">
+      <button class="hamb" id="hamb" aria-label="Menu"><i data-lucide="menu"></i></button>
       <div class="ttl"><span class="eyebrow" id="crumb">Career OS</span><span id="pagetitle">Dashboard</span></div>
       <div class="topacts">
-        <button class="btn btn-ghost" id="setupBtn"><i data-lucide="sliders-horizontal"></i> Setup</button>
-        <button class="btn btn-primary" id="buildBtn"><i data-lucide="zap"></i> Build Full Kit</button>
+        <button class="btn btn-ghost" id="setupBtn"><i data-lucide="sliders-horizontal"></i> <span class="lbl">Setup</span></button>
+        <button class="btn btn-primary" id="buildBtn"><i data-lucide="zap"></i> <span class="lbl">Build Full Kit</span></button>
       </div>
     </div>
     <div id="journeybar" style="display:none"></div>
@@ -379,7 +422,7 @@ function buildNav(){
     h+=`</div>`;
   }
   $("nav").innerHTML=h;
-  $("nav").querySelectorAll("[data-nav]").forEach(a=>a.onclick=()=>go(a.dataset.nav));
+  $("nav").querySelectorAll("[data-nav]").forEach(a=>a.onclick=()=>{go(a.dataset.nav);document.body.classList.remove("nav-open");});
   lucide.createIcons();
 }
 
@@ -1064,6 +1107,8 @@ function dlDoc(k){const html=marked.parse(results[k].output||"");
 function openDrawer(){$("scrim").classList.add("open");$("drawer").classList.add("open");}
 function closeDrawer(){$("scrim").classList.remove("open");$("drawer").classList.remove("open");}
 $("setupBtn").onclick=openDrawer;$("closeDrawer").onclick=closeDrawer;$("scrim").onclick=closeDrawer;
+$("hamb").onclick=()=>document.body.classList.toggle("nav-open");
+$("sidescrim").onclick=()=>document.body.classList.remove("nav-open");
 $("saveBtn").onclick=()=>{saveWS();$("savedMsg").classList.add("show");setTimeout(()=>$("savedMsg").classList.remove("show"),1600);closeDrawer();render();};
 $("file").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;
   $("filestatus").textContent="Reading "+f.name+"…";const fd=new FormData();fd.append("file",f);
