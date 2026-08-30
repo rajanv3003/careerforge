@@ -125,7 +125,12 @@ app.post("/api/run", async (req, res) => {
     const { module, resume, job, profile } = req.body || {};
     const mod = MODULES[module];
     if (!mod) return res.status(400).json({ error: "Unknown module: " + module });
-    const raw = await callGemini(mod.prompt({ resume, job, profile, o: req.body.o }), { json: !!mod.json, think: !!mod.think });
+    let raw = await callGemini(mod.prompt({ resume, job, profile, o: req.body.o }), { json: !!mod.json, think: !!mod.think });
+    // Outreach system prompt bans the em dash (the loudest AI tell). Safety net:
+    // scrub any em/en dash the model still slips in before it reaches the user.
+    if (module === "outreach") {
+      raw = raw.replace(/\s*—\s*/g, ", ").replace(/\s*–\s*/g, "-").replace(/\s*;\s*/g, ", ");
+    }
     let output = raw;
     if (mod.json) {
       const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
