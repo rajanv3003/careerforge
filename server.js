@@ -144,11 +144,18 @@ app.post("/api/run", async (req, res) => {
 
 // ---------------- Generate the graphical Intelligence Report PDF ----------------
 const CHROME_PATHS = [
+  process.env.CHROME_PATH,                         // set in Docker/cloud
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
   "/Applications/Chromium.app/Contents/MacOS/Chromium",
   "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
-];
+  "/usr/bin/chromium",                             // Linux (Debian/Alpine)
+  "/usr/bin/chromium-browser",
+  "/usr/bin/google-chrome",
+  "/usr/bin/google-chrome-stable",
+].filter(Boolean);
 function findChrome() { return CHROME_PATHS.find((p) => fs.existsSync(p)); }
+// flags every headless render needs so Chromium runs inside a container (no sandbox, small /dev/shm)
+const CHROME_BASE = ["--headless=new", "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--hide-scrollbars"];
 function run(cmd, args) {
   return new Promise((res, rej) =>
     execFile(cmd, args, { maxBuffer: 1024 * 1024 * 64 }, (e, so, se) => (e ? rej(new Error(se || e.message)) : res(so)))
@@ -190,7 +197,7 @@ app.post("/api/report", async (req, res) => {
 
     // 3. Print to PDF with headless Chrome
     await run(chrome, [
-      "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
+      "--headless=new", "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--no-pdf-header-footer",
       "--print-to-pdf=" + pdfPath, "--virtual-time-budget=8000",
       "file://" + encodeURI(htmlPath),
     ]);
@@ -221,7 +228,7 @@ app.post("/api/resume-pdf", async (req, res) => {
     const pdfPath = path.join(REPORTS_DIR, id + ".pdf");
     await run("python3", [path.join(__dirname, "resume_pdf.py"), tmp, htmlPath]);
     await run(chrome, [
-      "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
+      "--headless=new", "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--no-pdf-header-footer",
       "--print-to-pdf=" + pdfPath, "--virtual-time-budget=6000",
       "file://" + encodeURI(htmlPath),
     ]);
@@ -254,7 +261,7 @@ app.post("/api/vap-pdf", async (req, res) => {
     const date = new Date().toLocaleString("en-US", { month: "long", year: "numeric" });
     await run("python3", [path.join(__dirname, "vap_pdf.py"), tmp, htmlPath, name, date]);
     await run(chrome, [
-      "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
+      "--headless=new", "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--no-pdf-header-footer",
       "--print-to-pdf=" + pdfPath, "--virtual-time-budget=8000",
       "file://" + encodeURI(htmlPath),
     ]);
@@ -373,7 +380,7 @@ async function renderBanner(bannerObj, theme, bgPath, color, template) {
   const args = [path.join(__dirname, "banner_render.py"), tmp, htmlPath, theme || "noir", bgPath || "", color || ""];
   await run("python3", args);
   await run(chrome, [
-    "--headless=new", "--disable-gpu", "--force-device-scale-factor=1", "--hide-scrollbars",
+    "--headless=new", "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--force-device-scale-factor=1", "--hide-scrollbars",
     "--window-size=1584,396", "--screenshot=" + pngPath, "--virtual-time-budget=4000",
     "file://" + encodeURI(htmlPath),
   ]);

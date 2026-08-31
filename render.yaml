@@ -1,0 +1,33 @@
+# Render Blueprint — one-click deploy of CareerForge.
+# In Render: New → Blueprint → connect this GitHub repo. Render reads this file,
+# builds the Dockerfile, and asks you to fill the `sync: false` secrets.
+services:
+  - type: web
+    name: careerforge
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter          # "free" also works; starter has more RAM for Chromium
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: CHROME_PATH
+        value: /usr/bin/chromium
+      # ---- LLM brain (primary = DeepSeek) ----
+      - key: DEEPSEEK_API_KEY      # paste your sk-... key
+        sync: false
+      - key: DEEPSEEK_MODEL
+        value: deepseek-v4-flash
+      # ---- optional Gemini fallback (leave blank to skip) ----
+      - key: GEMINI_API_KEY        # a real AIza... key, optional
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      # ---- Gathos (AI cover images + voice) ----
+      - key: GATHOS_IMAGE_API_KEY
+        sync: false
+      - key: GATHOS_I2I_API_KEY
+        sync: false
+      - key: GATHOS_TTS_API_KEY
+        sync: false
+      - key: GATHOS_BASE_URL
+        value: https://gathos.com/api/v1
