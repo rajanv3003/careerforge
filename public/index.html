@@ -262,6 +262,19 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
 .mstep.done{opacity:1;color:var(--t2)}
 .mstep.done .mtick{border-color:var(--red);background:var(--red);animation:none}
 .mstep.done .mtick::after{content:"✓";color:#fff;font-size:12px;font-weight:800}
+/* ---------- sequential gating + progress (Path A) ---------- */
+.nav a.locked{opacity:.42;cursor:not-allowed;filter:grayscale(.4)}
+.nav a.locked:hover{background:none}
+.stepcard.locked{opacity:.5;cursor:not-allowed;filter:grayscale(.35)}
+.stepcard.locked:hover{transform:none;box-shadow:var(--depth-1),var(--hi-top)}
+.mtag{font-family:var(--font-body);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red);background:rgba(237,56,59,.12);padding:2px 8px;border-radius:6px;vertical-align:2px;margin-left:6px}
+.progwrap{max-width:920px;margin:0 auto 6px}
+.progtop{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:var(--t3);letter-spacing:.02em;margin-bottom:8px}
+.progmod{color:var(--red);text-transform:uppercase;letter-spacing:.1em;font-size:10.5px}
+.progbar{height:6px;border-radius:100px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:18px}
+.progfill{height:100%;border-radius:100px;background:var(--red-grad);box-shadow:var(--glow);transition:width .5s var(--ease)}
+.cf_toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:#1a1a1e;border:1px solid var(--line);color:#fff;font-size:13px;font-weight:600;padding:12px 20px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5);z-index:200;opacity:0;pointer-events:none;transition:.25s var(--ease)}
+.cf_toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
@@ -348,24 +361,29 @@ const TOOLS=[
 const T=Object.fromEntries(TOOLS.map(t=>[t.k,t]));
 let results={}, current="home";
 
-/* ---------- the 3 simple stages ---------- */
-const STAGES=[
-  {key:"resume",n:1,title:"Your Resume",short:"Resume",icon:"file-text",
+/* ---------- config (swap in one place) ---------- */
+const APP_NAME="CareerForge";     // single source of truth for the product name
+const ENABLE_VAP=false;           // "Your Positioning" (value-added project) hidden for now; re-enable inside the paid program later
+
+/* ---------- the sequential stages (4 live; VAP behind the flag) ---------- */
+const ALL_STAGES=[
+  {key:"resume",title:"Your Resume",mod:"1CR Resume Enhancer",short:"Resume",icon:"file-text",
    line:"Turn your details into a clean, professional resume that gets past the filters.",
-   next:"Next: your positioning"},
-  {key:"vap",n:2,title:"Your Positioning",short:"Positioning",icon:"lightbulb",
-   line:"Stand out to one target company with a short strategic project — the thing that gets you noticed.",
+   next:"Next: your LinkedIn positioning"},
+  {key:"vap",title:"Your Positioning",mod:"1CR Positioning",short:"Positioning",icon:"lightbulb",flag:"vap",
+   line:"Stand out to one target company with a short strategic project, the thing that gets you noticed.",
    next:"Next: your LinkedIn"},
-  {key:"linkedin",n:3,title:"Your LinkedIn",short:"LinkedIn",icon:"linkedin",
-   line:"A strong headline, a magnetic About, and an eye-catching cover image — created together.",
+  {key:"linkedin",title:"Your LinkedIn Positioning",mod:"1CR LinkedIn Positioning",short:"LinkedIn",icon:"linkedin",
+   line:"A strong headline, a magnetic About, and an eye-catching cover image, created together.",
    next:"Next: your outreach"},
-  {key:"outreach",n:4,title:"Your Outreach",short:"Outreach",icon:"send",
-   line:"Your first cold email, your first LinkedIn message, and follow-ups — written from your CV.",
+  {key:"outreach",title:"Your Outreach",mod:"1CR Outreach",short:"Outreach",icon:"send",
+   line:"Your first LinkedIn message, your cold email, and follow-ups, written from your CV.",
    next:"Next: interview practice"},
-  {key:"interview",n:5,title:"Interview Practice",short:"Interview",icon:"mic",
-   line:"A realistic mock interview — likely questions with strong answers, your pitch, and a voice you can hear.",
+  {key:"interview",title:"Interview Practice",mod:"1CR Interview Prep",short:"Interview",icon:"mic",
+   line:"A realistic mock interview: likely questions with strong answers, your pitch, and a voice you can hear.",
    next:"You're done"},
 ];
+const STAGES=ALL_STAGES.filter(s=>s.flag!=="vap"||ENABLE_VAP).map((s,i)=>({...s,n:i+1}));
 const STAGEKEYS=STAGES.map(s=>s.key);
 const SG=Object.fromEntries(STAGES.map(s=>[s.key,s]));
 let showAllTools=false;
@@ -379,6 +397,10 @@ function stageComplete(k){
 }
 function toggleTools(){showAllTools=!showAllTools;buildNav();}
 function nextStage(k){const i=STAGEKEYS.indexOf(k);if(i>=0&&i<STAGEKEYS.length-1)go(STAGEKEYS[i+1]);else go("home");}
+/* a stage unlocks only after every earlier stage is complete */
+function stageUnlocked(k){const i=STAGEKEYS.indexOf(k);if(i<=0)return true;for(let j=0;j<i;j++){if(!stageComplete(STAGEKEYS[j]))return false;}return true;}
+function firstIncomplete(){for(const k of STAGEKEYS){if(!stageComplete(k))return k;}return STAGEKEYS[0];}
+function navToast(msg){let t=$("cf_toast");if(!t){t=document.createElement("div");t.id="cf_toast";t.className="cf_toast";document.body.appendChild(t);}t.textContent=msg;t.classList.add("show");clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove("show"),2600);}
 
 /* ---------- workspace persistence ---------- */
 const FIELDS=["resume","job","name","email","phone","years","targetSalary","dreamCompanies","extra"];
@@ -406,9 +428,10 @@ function buildNav(){
     <a data-nav="home" class="${current==='home'?'active':''}"><i data-lucide="home"></i><span>Home</span></a>
   </div><div class="navlabel">Your ${STAGES.length} steps</div><div class="nav">`;
   STAGES.forEach(s=>{
-    const done=stageComplete(s.key);const loading=results[s.key]==="loading";
-    h+=`<a data-nav="${s.key}" class="${current===s.key?'active':''}">
-      <span class="snum ${done?'done':''} ${current===s.key?'cur':''}">${loading?'…':(done?'✓':s.n)}</span>
+    const done=stageComplete(s.key);const loading=results[s.key]==="loading";const unlocked=stageUnlocked(s.key);
+    const badge=loading?'…':(done?'✓':(unlocked?s.n:'<i data-lucide="lock" style="width:13px;height:13px"></i>'));
+    h+=`<a ${unlocked?`data-nav="${s.key}"`:''} class="${current===s.key?'active':''} ${unlocked?'':'locked'}">
+      <span class="snum ${done?'done':''} ${current===s.key?'cur':''}">${badge}</span>
       <span>${s.title}</span></a>`;
   });
   h+=`</div>`;
@@ -430,20 +453,23 @@ function buildNav(){
 function renderHome(){
   const hasWS=$("resume").value.trim();
   const card=(s)=>{
-    const done=stageComplete(s.key);const loading=results[s.key]==="loading";
-    return `<div class="glass lift stepcard" onclick="go('${s.key}')">
-      <div class="scircle ${done?'done':''}">${done?'<i data-lucide="check"></i>':s.n}</div>
-      <div class="sbody"><h3>${s.title}</h3><p>${s.line}</p>
-        <span class="stag ${done?'done':''}">${loading?'Working…':(done?'✓ Done — click to view':'Start this step →')}</span></div>
+    const done=stageComplete(s.key);const loading=results[s.key]==="loading";const unlocked=stageUnlocked(s.key);
+    const badge=done?'<i data-lucide="check"></i>':(unlocked?s.n:'<i data-lucide="lock"></i>');
+    const tag=loading?'Working…':(done?'✓ Done, click to view':(unlocked?'Start this step →':'Locked'));
+    return `<div class="glass lift stepcard ${unlocked?'':'locked'}" ${unlocked?`onclick="go('${s.key}')"`:''}>
+      <div class="scircle ${done?'done':''}">${badge}</div>
+      <div class="sbody"><h3>${s.title} <span class="mtag">${s.mod||''}</span></h3><p>${s.line}</p>
+        <span class="stag ${done?'done':''}">${tag}</span></div>
     </div>`;
   };
+  const firstK=firstIncomplete();
   $("view").innerHTML=`<div class="homewrap">
     <div class="hhero glass">
-      <div class="eyebrow2">The 72-Hour ₹1 Crore Job Breakthrough Kit</div>
-      <h1>Crack a ₹1 Crore role in <span class="grad">72 hours</span>.</h1>
-      <p>Five AI agents do the heavy lifting — your ATS resume, your positioning, your LinkedIn (headline + cover), your outreach, and a mock interview you can hear. You just answer a few questions.</p>
+      <div class="eyebrow2">Your 72-hour game-changer kit</div>
+      <h1>Master how to crack a <span class="grad">₹1 Crore</span> role.</h1>
+      <p>Four AI agents equip you step by step: your ATS resume, your LinkedIn positioning (headline + cover), your outreach, and a mock interview you can hear. You just answer a few questions.</p>
       <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="go('resume')"><i data-lucide="play"></i> Start step 1</button>
+        <button class="btn btn-primary" onclick="go('${firstK}')"><i data-lucide="play"></i> ${firstK===STAGEKEYS[0]?'Start step 1':'Continue'}</button>
         ${hasWS?`<button class="btn btn-ghost" onclick="openDrawer()"><i data-lucide="sliders-horizontal"></i> Edit my details</button>`:`<button class="btn btn-ghost" onclick="loadSample()"><i data-lucide="wand-2"></i> See it with a sample</button>`}
       </div>
     </div>
@@ -481,9 +507,13 @@ function startMagic(k){
 function stopMagic(){if(magicTimer){clearInterval(magicTimer);magicTimer=null;}}
 
 /* ---------- STAGE (clean, one focus) ---------- */
-function stageHead(s){return `<div class="stagehead">
+function stageHead(s){
+  const pct=Math.round((s.n/STAGES.length)*100);
+  return `<div class="progwrap"><div class="progtop"><span>Step ${s.n} of ${STAGES.length}</span><span class="progmod">${s.mod||''}</span></div>
+    <div class="progbar"><div class="progfill" style="width:${pct}%"></div></div></div>
+  <div class="stagehead">
   <div class="stagenum">${s.n}</div>
-  <div><div class="stagelbl">Step ${s.n} of ${STAGES.length}</div><h2>${s.title}</h2><p>${s.line}</p></div></div>`;}
+  <div><div class="stagelbl">${s.mod||('Step '+s.n)}</div><h2>${s.title}</h2><p>${s.line}</p></div></div>`;}
 function stageNextBtn(k){
   if(!SG[k])return "";const i=STAGEKEYS.indexOf(k);const s=SG[k];
   const target=i<STAGEKEYS.length-1?STAGEKEYS[i+1]:"home";
@@ -496,7 +526,7 @@ function renderStage(k){
     $("view").innerHTML=`<div class="outwrap">${stageHead(s)}
       <div class="glass"><div class="center"><div class="big"><i data-lucide="user-plus"></i></div>
         <h3>First, tell us about you</h3>
-        <p style="max-width:430px">Add your current resume and the role you want. We ask only once — all 3 steps use it.</p>
+        <p style="max-width:430px">Add your current resume and the role you want. We ask only once, and every step uses it.</p>
         <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center">
           <button class="btn btn-primary" onclick="openDrawer()"><i data-lucide="sliders-horizontal"></i> Add my details</button>
           <button class="btn btn-ghost" onclick="loadSample()"><i data-lucide="wand-2"></i> Try a sample</button>
@@ -546,10 +576,9 @@ function renderOutreach(s){
     <div class="grid2">
       <div class="field"><label>Who are they to the role?</label><select id="out_ring">
         <option value="">— pick one —</option>
-        <option value="hiring manager (future boss)" ${sel(sv.ring,'hiring manager (future boss)')}>Future boss (hiring manager)</option>
-        <option value="future peer / teammate" ${sel(sv.ring,'future peer / teammate')}>Future peer / teammate</option>
-        <option value="cross-functional partner" ${sel(sv.ring,'cross-functional partner')}>Cross-functional partner</option>
-        <option value="recruiter" ${sel(sv.ring,'recruiter')}>Recruiter</option>
+        <option value="your future boss (the hiring manager)" ${sel(sv.ring,'your future boss (the hiring manager)')}>Your future boss (the hiring manager)</option>
+        <option value="your future colleague / peer (a future team member)" ${sel(sv.ring,'your future colleague / peer (a future team member)')}>Your future colleagues / peers</option>
+        <option value="your future cross-functional work partner" ${sel(sv.ring,'your future cross-functional work partner')}>Your future work partners (cross-functions)</option>
       </select></div>
       <div class="field"><label>Best channel</label><select id="out_channel">
         <option value="">Whatever fits them best</option>
@@ -575,7 +604,8 @@ function renderOutreach(s){
     const card=(title,text,extra)=>`<div class="secttl">${title}</div><div class="glass" style="padding:16px 18px;margin-bottom:16px">
       <div style="font-size:13.5px;line-height:1.6;color:var(--t2);white-space:pre-wrap">${E(text)}${extra||''}</div>
       <button class="btn btn-ghost" style="margin-top:10px" onclick="cpy(this,${Q(text)})"><i data-lucide="copy"></i> Copy</button></div>`;
-    const connect=o.linkedin_connect_note?card("LinkedIn connection note",o.linkedin_connect_note,` <span class="hint">(${(o.linkedin_connect_note||'').length}/280)</span>`):'';
+    const connect=`<div class="secttl">Connection request</div><div class="glass" style="padding:16px 18px;margin-bottom:16px">
+      <div style="font-size:13.5px;line-height:1.6;color:var(--t2)"><b style="color:var(--red)">Send a blank connection request, no note.</b> Blank requests have a materially higher acceptance rate than ones with a pitch attached. Once they accept, send the first message below.</div></div>`;
     const dm=o.linkedin_message?card("First LinkedIn message",o.linkedin_message):'';
     const subs=((o.cold_email&&o.cold_email.subject_options)||[]).map(x=>`<span class="chip">${E(x)}</span>`).join("");
     const email=(o.cold_email&&o.cold_email.opening_message)?`<div class="secttl">Cold email</div>
@@ -747,8 +777,11 @@ function finishJourney(){
 }
 
 /* ---------- routing ---------- */
-function go(k){if(journeyStep>=0)exitJourney();current=k;
-  if(k==="home"){$("pagetitle").textContent="Home";$("crumb").textContent="Career OS";buildNav();renderHome();$("view").scrollTop=0;return;}
+function go(k){if(journeyStep>=0)exitJourney();
+  // sequential gating: cannot open a locked step
+  if(SG[k]&&!stageUnlocked(k)){const fi=firstIncomplete();navToast("Finish the earlier steps first.");k=fi;}
+  current=k;
+  if(k==="home"){$("pagetitle").textContent="Home";$("crumb").textContent=APP_NAME;buildNav();renderHome();$("view").scrollTop=0;return;}
   if(SG[k]){$("pagetitle").textContent=SG[k].title;$("crumb").textContent=`Step ${SG[k].n} of ${STAGES.length}`;buildNav();renderStage(k);$("view").scrollTop=0;return;}
   $("pagetitle").textContent = T[k].label;
   $("crumb").textContent = T[k].group;
@@ -1119,6 +1152,8 @@ $("file").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)re
 FIELDS.forEach(f=>$(f)&&$(f).addEventListener("input",()=>{clearTimeout(window._sv);window._sv=setTimeout(saveWS,600);}));
 
 /* ---------- boot ---------- */
+// swap the product name in one place (config constant)
+try{document.querySelector('.brand .name').textContent=APP_NAME;document.title=APP_NAME+" — 1CR Career OS";}catch(e){}
 loadWS();buildNav();
 {const h=location.hash.slice(1);go(h&&(h==="home"||SG[h]||T[h])?h:"home");}
 lucide.createIcons();

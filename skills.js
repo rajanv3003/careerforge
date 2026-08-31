@@ -348,7 +348,6 @@ ban, the banned phrase list, and Q4 specificity:
   "angle": "<the exact researched hook this is built on, one line>",
   "recommended_channel": "<comment-first | linkedin-dm | email>",
   "warmup_plan": ["<if comment-first: 2 to 3 concrete comment or engagement actions to do BEFORE any ask, each naming exactly what to react to; otherwise []>"],
-  "linkedin_connect_note": "<connection request note, under 300 characters, opens on them, no job ask>",
   "linkedin_message": "<the DM, six part structure, 90 to 130 words, one tiny ask, permission close, then stop>",
   "cold_email": {
     "subject_options": ["<3 short subjects per the subject rules>","...","..."],
