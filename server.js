@@ -346,16 +346,31 @@ app.post("/api/tts", async (req, res) => {
 });
 
 // ---------------- LinkedIn Kit (banner image + headline + about) ----------------
-async function renderBanner(bannerObj, theme, bgPath) {
+// LinkedIn banner design templates (read by the UI gallery; add more here freely).
+const BANNER_TEMPLATES = [
+  { id: "minimal",   name: "Minimalist",   desc: "Clean executive, giant faint monogram" },
+  { id: "spotlight", name: "Spotlight",    desc: "Concentric rings, focused glow" },
+  { id: "wave",      name: "Data Flow",    desc: "Elegant flowing curves" },
+  { id: "network",   name: "Network Mesh", desc: "Constellation data-mesh" },
+  { id: "authority", name: "Worked With",  desc: "Brand-credibility strip" },
+  { id: "metric",    name: "Big Metric",   desc: "One giant standout number" },
+  { id: "bars",      name: "Growth Bars",  desc: "Rising bar chart of wins" },
+];
+app.get("/api/banner-templates", (_req, res) => res.json({ templates: BANNER_TEMPLATES }));
+
+// opts: theme (preset), bgPath (AI cover image), color (swatch hex or free-text), template (design id)
+async function renderBanner(bannerObj, theme, bgPath, color, template) {
   const chrome = findChrome();
   if (!chrome) throw new Error("No Chrome/Chromium found to render the banner.");
   const id = "ban_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const tmp = path.join(os.tmpdir(), id + ".json");
-  fs.writeFileSync(tmp, JSON.stringify({ output: { banner: bannerObj } }));
+  // the user's chosen design template overrides the AI-picked layout
+  const obj = template ? { ...bannerObj, layout: template } : bannerObj;
+  fs.writeFileSync(tmp, JSON.stringify({ output: { banner: obj } }));
   const htmlPath = path.join(REPORTS_DIR, id + ".html");
   const pngPath = path.join(REPORTS_DIR, id + ".png");
-  const args = [path.join(__dirname, "banner_render.py"), tmp, htmlPath, theme || "noir"];
-  if (bgPath) args.push(bgPath);
+  // banner_render.py args: <json> <html> <theme> <bg> <color>
+  const args = [path.join(__dirname, "banner_render.py"), tmp, htmlPath, theme || "noir", bgPath || "", color || ""];
   await run("python3", args);
   await run(chrome, [
     "--headless=new", "--disable-gpu", "--force-device-scale-factor=1", "--hide-scrollbars",
@@ -374,7 +389,7 @@ app.post("/api/linkedin-kit", async (req, res) => {
     const assets = safeJson(raw);
     if (!assets || !assets.banner) return res.status(500).json({ error: "Could not build the kit. Try again." });
     const theme = (li && li.theme) || "noir";
-    const banner_url = await renderBanner(assets.banner, theme);
+    const banner_url = await renderBanner(assets.banner, theme, "", li && li.color, li && li.template);
     res.json({ assets, banner_url, theme });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -383,9 +398,9 @@ app.post("/api/linkedin-kit", async (req, res) => {
 
 app.post("/api/banner-render", async (req, res) => {
   try {
-    const { banner, theme } = req.body || {};
+    const { banner, theme, color, template } = req.body || {};
     if (!banner) return res.status(400).json({ error: "No banner data." });
-    const banner_url = await renderBanner(banner, theme || "noir");
+    const banner_url = await renderBanner(banner, theme || "noir", "", color, template);
     res.json({ banner_url, theme: theme || "noir" });
   } catch (e) {
     res.status(500).json({ error: e.message });

@@ -22,6 +22,7 @@ IN    = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "out", "banner.
 OUT   = sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "out", "banner.html")
 THEME = (sys.argv[3] if len(sys.argv) > 3 else "noir").lower()
 BG    = sys.argv[4] if len(sys.argv) > 4 else ""
+COLOR = sys.argv[5] if len(sys.argv) > 5 else ""   # swatch hex or free-text colour name
 
 _raw = json.load(open(IN))
 b = _raw.get("output", _raw)
@@ -55,6 +56,46 @@ THEMES = {
 }
 t = THEMES.get(THEME, THEMES["noir"])
 GLOW, ACC, NET = t["glow"], t["acc"], t["net"]
+
+# ---------------- Colour picker: swatch hex OR free-text name ----------------
+NAMED = {
+    "amber": "#FF7A2F", "gold": "#FFB020", "orange": "#FF7A2F", "sunset": "#FF6A3D",
+    "red": "#ED383B", "crimson": "#E5484D", "ember": "#FF5E60", "ruby": "#E5484D",
+    "emerald": "#20C08A", "green": "#22B473", "teal": "#14B8A6", "mint": "#2FE6A6",
+    "blue": "#3B82F6", "deep blue": "#2F5BFF", "navy": "#3457D5", "royal blue": "#2F5BFF",
+    "sky": "#38BDF8", "cyan": "#22D3EE", "azure": "#2F80FF",
+    "indigo": "#6366F1", "violet": "#8B5CF6", "purple": "#A855F7", "lavender": "#B39DFF",
+    "magenta": "#E24B9E", "pink": "#EC4899", "rose": "#FB7185",
+    "slate": "#94A3B8", "steel": "#7C93B0", "graphite": "#9AA0AA", "silver": "#C4C9D4",
+    "bronze": "#C08457", "copper": "#C0714A", "champagne": "#D9C08A", "white": "#E8E8EC",
+}
+def _hex_to_rgb(h):
+    h = h.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+def resolve_color(s):
+    s = (s or "").strip().lower()
+    if not s:
+        return None
+    hexv = None
+    if re.fullmatch(r"#?[0-9a-f]{6}", s) or re.fullmatch(r"#?[0-9a-f]{3}", s):
+        hexv = s if s.startswith("#") else "#" + s
+    elif s in NAMED:
+        hexv = NAMED[s]
+    else:
+        for k, v in NAMED.items():          # match "deep blue" inside "a deep blue please"
+            if k in s:
+                hexv = v
+                break
+    if not hexv:
+        return None
+    r, g, b = _hex_to_rgb(hexv)
+    lr, lg, lb = [int(c + (255 - c) * 0.45) for c in (r, g, b)]   # lighter tint for the network/lines
+    return {"glow": f"{r},{g},{b}", "acc": hexv, "net": f"{lr},{lg},{lb}"}
+_col = resolve_color(COLOR)
+if _col:
+    GLOW, ACC, NET = _col["glow"], _col["acc"], _col["net"]
 
 # Per-person deterministic seed → unique-but-stable graphics
 def _seed_from(s):
@@ -129,7 +170,21 @@ def viz_authority():
     return (viz_curves() +
             f'<div class="creds"><div class="credlabel">WORKED WITH</div><div class="chips">{chips}</div></div>')
 
+def viz_wave():
+    return viz_curves()
+
+def viz_minimal():
+    # elegant executive: a giant faint initial on the right, nothing else
+    initial = e((name_raw.strip()[:1] or "").upper())
+    return f'<div class="mono">{initial}</div>'
+
+def viz_spotlight():
+    rings = ''.join(f'<circle cx="1240" cy="198" r="{r}" fill="none" stroke="rgba({NET},{max(0.03,0.12-0.02*i):.2f})" stroke-width="1.5"/>'
+                    for i, r in enumerate((90, 140, 190, 240)))
+    return f'<svg class="viz" width="1584" height="396">{rings}</svg>'
+
 VIZ = {"network": lambda: viz_network()+viz_curves(),
+       "wave": viz_wave, "minimal": viz_minimal, "spotlight": viz_spotlight,
        "bars": viz_bars, "metric": viz_metric, "authority": viz_authority}
 
 # ---------------- Background ----------------
@@ -158,7 +213,10 @@ html,body {{ width:1584px; height:396px; overflow:hidden; }}
 .scrim {{ position:absolute; inset:0; background:linear-gradient(90deg,rgba(9,9,11,.78),rgba(9,9,11,.52) 34%,rgba(9,9,11,.55) 66%,rgba(9,9,11,.80)); }}
 .viz {{ position:absolute; inset:0; pointer-events:none; }}
 .banner::after {{ content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(90deg, rgba(9,9,11,.55) 0%, rgba(9,9,11,0) 30%); }}
-.copy {{ position:absolute; left:340px; right:64px; top:0; bottom:0; z-index:3; display:flex; flex-direction:column; justify-content:center; }}
+/* SAFE ZONE: LinkedIn overlays the profile photo on the lower-left and crops the
+   sides on mobile. Keep all copy inside left:392..right:88 and vertically centred. */
+.copy {{ position:absolute; left:392px; right:88px; top:0; bottom:0; z-index:3; display:flex; flex-direction:column; justify-content:center; }}
+.mono {{ position:absolute; right:120px; top:50%; transform:translateY(-52%); z-index:1; font-family:'Archivo'; font-weight:900; font-size:340px; line-height:1; color:rgba(255,255,255,.05); pointer-events:none; }}
 .tagline {{ font-family:'Archivo'; font-weight:800; font-size:41px; letter-spacing:-.6px; line-height:1.12; color:#FFF; max-width:900px; text-shadow:0 2px 22px rgba(0,0,0,.45); }}
 .lay-authority .tagline {{ max-width:560px; }}
 .lay-metric .tagline, .lay-bars .tagline {{ max-width:520px; }}

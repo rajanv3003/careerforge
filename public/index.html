@@ -275,6 +275,25 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
 .progfill{height:100%;border-radius:100px;background:var(--red-grad);box-shadow:var(--glow);transition:width .5s var(--ease)}
 .cf_toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:#1a1a1e;border:1px solid var(--line);color:#fff;font-size:13px;font-weight:600;padding:12px 20px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5);z-index:200;opacity:0;pointer-events:none;transition:.25s var(--ease)}
 .cf_toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* ---------- LinkedIn banner design gallery + colour picker ---------- */
+.substage{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-weight:800;font-size:13px;letter-spacing:.03em;color:#fff;margin:20px 0 12px}
+.stepdot{width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.tplgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.tplcard{position:relative;border:2px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;background:#0b0b0d;transition:border-color .15s,transform .15s}
+.tplcard:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.28)}
+.tplcard.sel{border-color:var(--red);box-shadow:0 0 0 3px rgba(237,56,59,.22)}
+.tplcard img{width:100%;display:block;aspect-ratio:1584/396;object-fit:cover}
+.tplmeta{padding:9px 12px}
+.tplmeta b{display:block;font-size:12.5px;font-weight:700}
+.tplmeta span{font-size:11px;color:var(--t4)}
+.tpltick{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center}
+.tpltick i{width:14px;height:14px}
+.swatchrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.swatch{width:34px;height:34px;border-radius:9px;border:2px solid rgba(255,255,255,.15);cursor:pointer;padding:0;transition:transform .12s}
+.swatch:hover{transform:scale(1.08)}
+.swatch.sel{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.25)}
+.colortext{flex:1;min-width:200px;background:var(--surface-hi);border:1px solid var(--line);color:#fff;border-radius:10px;padding:9px 12px;font-size:13px}
+.colortext:focus{outline:none;border-color:var(--red)}
 </style>
 </head>
 <body>
@@ -905,47 +924,63 @@ async function runOne(k){
   buildNav();if(current===k)renderTool(k);if(current==="dashboard")renderDashboard();
 }
 const THEMES=[["noir","Noir"],["red","Signal Red"],["emerald","Emerald"]];
+let BTPL=null;
+async function loadTemplates(){try{const r=await fetch('/api/banner-templates');const d=await r.json();BTPL=d.templates||[];}catch(e){BTPL=[];}}
+const SWATCHES=[['Amber','#FF7A2F'],['Ember','#ED383B'],['Emerald','#20C08A'],['Teal','#14B8A6'],['Royal Blue','#2F5BFF'],['Sky','#38BDF8'],['Indigo','#6366F1'],['Violet','#8B5CF6'],['Magenta','#E24B9E'],['Graphite','#9AA0AA']];
+function saveLiInputs(){const s=JSON.parse(localStorage.getItem('cf_li')||'{}');if($('li_target'))s.li_target=$('li_target').value;if($('li_url'))s.li_url=$('li_url').value;localStorage.setItem('cf_li',JSON.stringify(s));}
+function pickTpl(id){saveLiInputs();const s=JSON.parse(localStorage.getItem('cf_li')||'{}');s.template=id;localStorage.setItem('cf_li',JSON.stringify(s));renderStage('linkedin');}
+function pickColor(c){saveLiInputs();const s=JSON.parse(localStorage.getItem('cf_li')||'{}');s.color=c;localStorage.setItem('cf_li',JSON.stringify(s));renderStage('linkedin');}
+function pickColorText(){pickColor(($('li_colortext').value||'').trim());}
 function renderLinkedin(){
-  const t=T.linkedin;const st=results.linkedin;stopMagic();
+  const st=results.linkedin;stopMagic();
   if(st==="loading"){$("view").innerHTML=`<div class="outwrap">${stageHead(SG.linkedin)}${magicHTML("linkedin")}</div>`;startMagic("linkedin");lucide.createIcons();return;}
+  if(BTPL===null){$("view").innerHTML=`<div class="outwrap">${stageHead(SG.linkedin)}<div class="glass"><div class="center"><div class="spin"></div><h3 style="margin-top:14px">Loading designs…</h3></div></div></div>`;loadTemplates().then(()=>{if(current==='linkedin')renderStage('linkedin');});lucide.createIcons();return;}
   const saved=JSON.parse(localStorage.getItem("cf_li")||"{}");
+  const selT=saved.template||'', selC=(saved.color||'');
+  const A=x=>(x||'').replace(/"/g,'&quot;');
   const head=stageHead(SG.linkedin);
+  const gallery=BTPL.map(t=>`<div class="tplcard ${selT===t.id?'sel':''}" onclick="pickTpl('${t.id}')">
+     <img src="/templates/${t.id}.png" loading="lazy" alt="${t.name}">
+     <div class="tplmeta"><b>${t.name}</b><span>${t.desc}</span></div>
+     ${selT===t.id?'<div class="tpltick"><i data-lucide="check"></i></div>':''}</div>`).join("");
+  const swatches=SWATCHES.map(([n,h])=>`<button class="swatch ${(selC||'').toLowerCase()===h.toLowerCase()?'sel':''}" title="${n}" style="background:${h}" onclick="pickColor('${h}')"></button>`).join("");
+  const isCustom=selC&&!SWATCHES.some(x=>x[1].toLowerCase()===(selC||'').toLowerCase());
   const form=`<div class="glass" style="padding:22px 24px;margin-bottom:16px">
     <div class="grid2">
-      <div class="field"><label>Target role / positioning</label><input id="li_target" placeholder="e.g. Engineering Lead, fintech" value="${saved.li_target||''}"></div>
-      <div class="field"><label>Your LinkedIn URL (optional)</label><input id="li_url" placeholder="linkedin.com/in/you" value="${saved.li_url||''}"></div>
+      <div class="field"><label>Target role / positioning</label><input id="li_target" placeholder="e.g. Engineering Lead, fintech" value="${A(saved.li_target)}"></div>
+      <div class="field"><label>Your LinkedIn URL (optional)</label><input id="li_url" placeholder="linkedin.com/in/you" value="${A(saved.li_url)}"></div>
     </div>
-    <button class="btn btn-primary" onclick="genLinkedin()"><i data-lucide="sparkles"></i> Build my LinkedIn Kit</button>
-    <div class="hint" style="margin-top:8px">Uses your saved resume for proof. Add it in Setup if you haven't.</div>
+    <div class="substage"><span class="stepdot">1</span> Choose a design</div>
+    <div class="tplgrid">${gallery}</div>
+    <div class="substage"><span class="stepdot">2</span> Choose a colour</div>
+    <div class="swatchrow">${swatches}
+      <input id="li_colortext" class="colortext" placeholder="or type a colour (e.g. deep blue)" value="${isCustom?A(saved.color):''}" onchange="pickColorText()">
+    </div>
+    <div class="substage"><span class="stepdot">3</span> Generate</div>
+    <button class="btn btn-primary" ${selT?'':'disabled style="opacity:.5;cursor:not-allowed"'} onclick="genLinkedin()"><i data-lucide="sparkles"></i> Generate my LinkedIn kit</button>
+    <div class="hint" style="margin-top:8px">${selT?'Banner is 1584×396 with a safe zone for your profile photo. Uses your saved resume for proof.':'Pick a design above to enable Generate.'}</div>
   </div>`;
   let out="";
-  if(st==="loading"){
-    out=`<div class="glass"><div class="center"><div class="spin"></div><h3 style="margin-top:18px">Designing your LinkedIn system…</h3><p>Banner, 3 headlines and a 5-part About — aligned. ~30s.</p></div></div>`;
-  }else if(st&&st.error){
-    out=`<div class="glass" style="padding:22px"><div class="err">${st.error}</div></div>`;
-  }else if(st&&st.assets){
+  if(st&&st.error){out=`<div class="glass" style="padding:22px"><div class="err">${st.error}</div></div>`;}
+  else if(st&&st.assets){
     const a=st.assets;const rec=a.recommended_headline||0;
-    const themeBtns=THEMES.map(([v,l])=>`<button class="btn ${st.theme===v?'btn-primary':'btn-ghost'}" onclick="switchTheme('${v}')">${l}</button>`).join("")
-      +`<button class="btn ${st.theme==='ai'?'btn-primary':'btn-ghost'}" onclick="genAiBanner()"><i data-lucide="sparkles"></i> AI Cover (Gathos)</button>`;
     const heads=a.headlines.map((h,i)=>`<div class="glass" style="padding:14px 16px;margin-bottom:10px;${i===rec?'border-color:var(--line-red)':''}">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-        <div style="font-weight:600;font-size:13.5px;line-height:1.5">${h.text} <span class="hint">(${h.text.length}/220)</span></div>
-        <button class="btn btn-ghost" style="flex-shrink:0" onclick="cpy(this,${JSON.stringify(h.text).replace(/"/g,'&quot;')})"><i data-lucide="copy"></i></button>
+        <div style="font-weight:600;font-size:13.5px;line-height:1.5">${(h.text||'').replace(/</g,'&lt;')} <span class="hint">(${(h.text||'').length}/220)</span></div>
+        <button class="btn btn-ghost" style="flex-shrink:0" onclick="cpy(this,${JSON.stringify(h.text||'').replace(/"/g,'&quot;')})"><i data-lucide="copy"></i></button>
       </div>
-      ${i===rec?'<span class="chip good" style="margin-top:8px">★ Recommended</span> ':''}<span class="hint">${h.why||''}</span>
+      ${i===rec?'<span class="chip good" style="margin-top:8px">★ Recommended</span> ':''}<span class="hint">${(h.why||'').replace(/</g,'&lt;')}</span>
     </div>`).join("");
     out=`
       <div class="glass" style="padding:20px 22px;margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-          <b style="font-family:var(--font-display);font-size:15px">Your banner · 1584×396</b>
-          <div style="display:flex;gap:7px;flex-wrap:wrap">${themeBtns}</div>
-        </div>
-        <img id="li_banner" src="${st.banner_url}" style="width:100%;border-radius:12px;border:1px solid var(--line);display:block"/>
-        <div style="display:flex;gap:10px;margin-top:12px">
+        <b style="font-family:var(--font-display);font-size:15px">Your banner · 1584×396</b>
+        <img id="li_banner" src="${st.banner_url}" style="width:100%;border-radius:12px;border:1px solid var(--line);display:block;margin-top:12px"/>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
           <a class="btn btn-primary" href="${st.banner_url}" download="linkedin_banner.png"><i data-lucide="download"></i> Download banner</a>
-          <button class="btn btn-ghost" onclick="genLinkedin()"><i data-lucide="refresh-cw"></i> Regenerate all</button>
+          <button class="btn btn-ghost" onclick="genLinkedin()"><i data-lucide="refresh-cw"></i> Regenerate</button>
+          <button class="btn btn-ghost" onclick="genAiBanner()"><i data-lucide="sparkles"></i> AI Cover (Gathos)</button>
         </div>
-        <div class="hint" style="margin-top:8px">Visual concept: ${a.banner.visual_concept||''}</div>
+        <div class="hint" style="margin-top:8px">Change the design or colour above, then Regenerate.</div>
       </div>
       <div class="secttl">Headline — pick one</div>${heads}
       <div class="secttl" style="margin-top:18px">About section <span class="hint">(${(a.about||'').length} chars)</span></div>
@@ -958,8 +993,9 @@ function renderLinkedin(){
   lucide.createIcons();
 }
 async function genLinkedin(){
-  const li={target:$("li_target").value.trim(),url:$("li_url").value.trim(),theme:(results.linkedin&&results.linkedin.theme)||"noir"};
-  localStorage.setItem("cf_li",JSON.stringify({li_target:li.target,li_url:li.url}));
+  saveLiInputs();
+  const s=JSON.parse(localStorage.getItem('cf_li')||'{}');
+  const li={target:($('li_target')?.value||'').trim(),url:($('li_url')?.value||'').trim(),template:s.template||'minimal',color:s.color||''};
   results.linkedin="loading";renderStage("linkedin");buildNav();
   try{
     const r=await fetch("/api/linkedin-kit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...gather(),li})});
