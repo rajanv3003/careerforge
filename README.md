@@ -1,5 +1,10 @@
 # CareerForge — 1CR Career OS
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/rajanv3003/careerforge)
+
+**One-click deploy:** click the button above (sign in with GitHub), paste your keys when
+asked, and Render gives you a permanent `https://<name>.onrender.com` link.
+
 An AI agent suite for job seekers targeting ₹1 Crore+ roles: Resume, LinkedIn
 Positioning (banner + headline + About), Outreach, and Interview Prep.
 
