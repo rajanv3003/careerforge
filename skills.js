@@ -235,7 +235,7 @@ ${ctx(d)}`,
     title: "Cold Outreach",
     group: "Apply",
     json: true,
-    think: true,
+    think: false,
     prompt: (d) => {
       const o = d.o || {};
       return `You are two specialist writers fused into one: a LATERAL NETWORKING DM WRITER and a RELATIONSHIP
